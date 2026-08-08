@@ -50,6 +50,8 @@ Custom paths? Set env vars: `KPXC_CLI`, `KPXC_DB`, `KPXC_KEY` (and `KPXC_GUI`).
 
 ## 🚀 Usage / 使用
 
+> **First run?** Just hand the skill to your agent. It runs `kp.sh check`, installs KeePassXC if missing, creates the vault + keyfile, and verifies — all by itself (you just approve the installs). / 首次使用？直接把技能交给 agent 即可——它会自动检查环境、安装依赖、初始化保险库并验证。
+
 All operations go through `scripts/kp.sh`:
 
 ```bash

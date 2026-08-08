@@ -21,6 +21,25 @@ Whenever the task needs a password, API key, token, or any auth credential:
    - No → continue with whatever the user provides, or report the credential is unavailable.
 5. **Use** — capture into a variable, inject into the command env, never print.
 
+## First-run bootstrap (agent sets everything up on a fresh machine)
+
+Users hand this skill to an agent without reading docs. On first use, run `bash scripts/kp.sh check` and self-heal based on its output — don't ask the user to install anything themselves:
+
+1. **CLI missing** (`keepassxc-cli: command not found`, check exits non-zero with no version line) — install KeePassXC for the user (announce it first, ask permission):
+   - Windows: `winget install --id KeePassXCTeam.KeePassXC --accept-source-agreements --accept-package-agreements`
+   - macOS: `brew install --cask keepassxc`
+   - Linux: `apt install keepassxc` (or distro equivalent)
+2. **DB or keyfile missing** (check prints `DB missing` / `KEY missing`) — create both:
+   ```bash
+   mkdir -p ~/.secrets
+   head -c 64 /dev/urandom > ~/.secrets/keys.key
+   keepassxc-cli db-create --set-key-file ~/.secrets/keys.key ~/.secrets/secrets.kdbx
+   ```
+   (If the CLI isn't on PATH yet, use the full path; on Windows that is `/c/Program Files/KeePassXC/keepassxc-cli.exe`.)
+3. Re-run `bash scripts/kp.sh check` and confirm it reports the DB + entry count before any secret operation.
+
+Rules: never install software or create the vault silently — say what you're about to do. Always tell the user that `keys.key` is the ONLY unlock credential and suggest backing it up (USB / password manager). If Python/tkinter is missing and the user needs the popup dialog, install Python 3 (python.org installer on Windows, includes tkinter).
+
 ## Layout
 
 - Database: `~/.secrets/secrets.kdbx` — **keyfile-only, no password**
