@@ -60,11 +60,12 @@ case "$cmd" in
       && echo "added: $1" || { echo "add failed (entry may already exist): $1" >&2; exit 1; }
     ;;
   list)
-    "$KPXC" ls "${UNLOCK[@]}" "$DB" 2>/dev/null
+    # NOTE: keepassxc-cli ls emits CRLF on Windows — strip \r so output can be piped back into get/rm
+    "$KPXC" ls "${UNLOCK[@]}" "$DB" 2>/dev/null | tr -d '\r'
     ;;
   search)
     [ $# -eq 1 ] || { echo "usage: kp.sh search <term>" >&2; exit 2; }
-    "$KPXC" search "${UNLOCK[@]}" "$DB" "$1" 2>/dev/null
+    "$KPXC" search "${UNLOCK[@]}" "$DB" "$1" 2>/dev/null | tr -d '\r'
     ;;
   rm)
     [ $# -eq 1 ] || { echo "usage: kp.sh rm <name>" >&2; exit 2; }

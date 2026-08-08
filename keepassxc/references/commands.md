@@ -83,6 +83,7 @@ printf '%s\n' "$VALUE" | "$KPXC" edit "${UNLOCK[@]}" -p "$DB" "条目名"
 | 批导入后长度多 1 | CRLF 残留 `\r` | 用 `kp.sh batch`（已处理） |
 | 脚本静默退出、无任何输出 | `set -e` 遇到 `show`/`ls` 查不到条目时退出 | 命令替换处加 `|| true`（`kp.sh` 已内置，自定义脚本时注意） |
 | 弹窗不出现，`python kp-input.py` 直接退出 | 子进程调用时位置参数顺序错：`add [选项] 数据库 条目` | 先命令+选项，再数据库，最后条目（`kp-input.py` 已修正） |
+| `list`/`search` 输出带 `\r`（`^M`），管道回 `get` 全部失败 | Windows 下 `keepassxc-cli ls` 输出 CRLF | `kp.sh list/search` 已内置 `tr -d '\r'`（v1.2.1） |
 
 ## 备份
 
