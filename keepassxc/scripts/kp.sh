@@ -23,10 +23,36 @@
 
 set -euo pipefail
 
-KPXC="${KPXC_CLI:-/c/Program Files/KeePassXC/keepassxc-cli.exe}"
+# --- Path resolution: env override > PATH auto-detect > OS defaults ---
+# (cross-platform: macOS/Linux installs keepassxc-cli on PATH via brew/apt)
+if [ -n "${KPXC_CLI:-}" ]; then
+  KPXC="$KPXC_CLI"
+elif command -v keepassxc-cli >/dev/null 2>&1; then
+  KPXC="$(command -v keepassxc-cli)"
+else
+  KPXC="/c/Program Files/KeePassXC/keepassxc-cli.exe"   # Windows default
+fi
+
+if [ -n "${KPXC_GUI:-}" ]; then
+  GUI="$KPXC_GUI"
+elif command -v keepassxc >/dev/null 2>&1; then
+  GUI="$(command -v keepassxc)"
+elif [ -x "/Applications/KeePassXC.app/Contents/MacOS/KeePassXC" ]; then
+  GUI="/Applications/KeePassXC.app/Contents/MacOS/KeePassXC"
+else
+  GUI="/c/Program Files/KeePassXC/KeePassXC.exe"         # Windows default
+fi
+
+if [ -n "${KPXC_PYTHON:-}" ]; then
+  PYTHON="$KPXC_PYTHON"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+else
+  PYTHON=python
+fi
+
 DB="${KPXC_DB:-$HOME/.secrets/secrets.kdbx}"
 KEY="${KPXC_KEY:-$HOME/.secrets/keys.key}"
-GUI="${KPXC_GUI:-/c/Program Files/KeePassXC/KeePassXC.exe}"
 UNLOCK=(--no-password -k "$KEY")
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -95,7 +121,7 @@ case "$cmd" in
   input)
     # Popup dialog; exit 0 = saved, 1 = canceled. Name optional (prefilled).
     [ $# -le 1 ] || { echo "usage: kp.sh input [name]" >&2; exit 2; }
-    python "$SCRIPT_DIR/kp-input.py" "${1:-}"
+    "$PYTHON" "$SCRIPT_DIR/kp-input.py" "${1:-}"
     ;;
   get-or-input)
     # Get secret; if missing, popup dialog prefilled with the name, then re-get.
@@ -107,7 +133,7 @@ case "$cmd" in
       printf '%s' "$value"
     else
       echo "[提示] 条目 '$name' 不存在，请在弹出的窗口中录入" >&2
-      if python "$SCRIPT_DIR/kp-input.py" "$name"; then
+      if "$PYTHON" "$SCRIPT_DIR/kp-input.py" "$name"; then
         value=$("$KPXC" show "${UNLOCK[@]}" -a password "$DB" -- "$name" 2>/dev/null | tr -d '\r' || true)
         if [ -n "$value" ]; then
           echo "[完成] '$name' 已保存并读取成功" >&2

@@ -19,9 +19,10 @@
 
 ### Prerequisites / 依赖
 
-- **KeePassXC** (>= 2.7) — `winget install KeePassXCTeam.KeePassXC`
-- **Python 3** with tkinter (Windows: python.org installer / Miniconda both OK)
-- Git Bash (or any bash shell) on Windows; works on macOS/Linux with adjusted paths
+- **KeePassXC** (>= 2.7) — `winget install KeePassXCTeam.KeePassXC` (Windows) / `brew install --cask keepassxc` (macOS) / `apt install keepassxc` (Linux). The CLI (`keepassxc-cli`) is auto-detected from PATH; on Windows the default location is used if not on PATH.
+- **Python 3 + tkinter** — required only for the popup dialog (`kp-input.py`); non-interactive commands work without it. Windows installer / Miniconda both include tkinter.
+- **Bash** — Git Bash on Windows; native bash on macOS/Linux.
+- Optional env overrides if your setup differs: `KPXC_CLI`, `KPXC_DB`, `KPXC_KEY`, `KPXC_GUI`, `KPXC_PYTHON`.
 
 ### Install the skill / 安装技能
 

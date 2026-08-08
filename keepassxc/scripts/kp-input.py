@@ -13,6 +13,7 @@ It is never written to disk, argv, chat, or logs.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 import tkinter as tk
@@ -21,10 +22,22 @@ from tkinter import messagebox, ttk
 APP_TITLE = "存储密钥到 KeePassXC"
 
 
+def find_cli():
+    """Env override > PATH lookup > Windows default (cross-platform)."""
+    env = os.environ.get("KPXC_CLI", "")
+    if env:
+        return env
+    for cand in ("keepassxc-cli", r"C:\Program Files\KeePassXC\keepassxc-cli.exe"):
+        found = shutil.which(cand)
+        if found:
+            return found
+    return "keepassxc-cli"  # last resort; will error visibly
+
+
 def paths():
     home = os.path.expanduser("~")
     return {
-        "cli": os.environ.get("KPXC_CLI", r"C:\Program Files\KeePassXC\keepassxc-cli.exe"),
+        "cli": find_cli(),
         "db": os.environ.get("KPXC_DB", os.path.join(home, ".secrets", "secrets.kdbx")),
         "key": os.environ.get("KPXC_KEY", os.path.join(home, ".secrets", "keys.key")),
     }
