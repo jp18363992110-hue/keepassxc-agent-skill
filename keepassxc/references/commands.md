@@ -1,5 +1,31 @@
 # keepassxc-cli 命令参考与排障
 
+## 安全模型（威胁建模结论，2026-08）
+
+| 攻击面 | 状态 | 说明 |
+|---|---|---|
+| Shell 注入（条目名/值） | ✅ 已防御 | 全部 argv 引号传递 + `--` 分隔符，实测 `a; touch /tmp/pwned` 作为字面名处理 |
+| 选项注入（`-` 开头条目名） | ✅ 已修复 (v1.2.2) | 所有条目名前加 `--` 隔离（实测 `-p` 不再被解析为选项） |
+| 值经 argv 泄露 | ✅ 已防御 | 所有值走 stdin（`printf '%s\n' \| cli -p`） |
+| 输出 CRLF 污染 | ✅ 已修复 (v1.2.2) | `get`/`get-or-input`/`list`/`search` 统一 `tr -d '\r'` |
+| 密钥文件 ACL | ⚠️ 需人工加固 | 默认目录可能继承沙箱组权限（本机实测 `CodexSandboxUsers` 对 `~/.secrets` 有 M 权限），见下方加固命令 |
+| Agent 提示注入 → 外泄 | ⚠️ 依赖护栏 | SKILL.md 强制：注入前与用户确认；禁止向未知目标网络发送密钥；用户确认机制是最后防线 |
+| 供应链 | ⚠️ 需用户自觉 | 只从官方仓库安装；SKILL.md 本身可被篡改，加载来源不明的技能 = 执行未知指令 |
+| 暴力破解 | ✅ 强 | KDBX4 + Argon2，keyfile 64 随机字节（≈512bit 熵），不可暴力破解 |
+
+### 本机实测加固命令（Windows）
+
+```powershell
+# 保险库目录：移除继承的沙箱/未知组权限，只留本人 + SYSTEM + Administrators
+icacls "C:\Users\yyjia\.secrets" /inheritance:r /grant:r "yyjia:(OI)(CI)F" "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F"
+# 技能目录同理（防止脚本被替换 = 防 RCE）
+icacls "C:\Users\yyjia\.agents\skills\keepassxc" /inheritance:r /grant:r "yyjia:(OI)(CI)F" "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F"
+# 验证
+icacls "C:\Users\yyjia\.secrets\keys.key"
+```
+
+> 注意：若你的 AI 工具以沙箱身份（如 CodexSandboxUsers）执行命令，收紧 ACL 后沙箱内将无法读取密钥——需权衡，或给沙箱单独最小权限（只读、无修改）。
+
 ## 弹窗录入（推荐的人机交互路径）
 
 ```bash

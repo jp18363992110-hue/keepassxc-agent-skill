@@ -35,7 +35,9 @@ cmd="${1:-}"; shift || true
 case "$cmd" in
   get)
     [ $# -eq 1 ] || { echo "usage: kp.sh get <name>" >&2; exit 2; }
-    "$KPXC" show "${UNLOCK[@]}" -a password "$DB" "$1" 2>/dev/null
+    # `--` ends option parsing: entry names are untrusted data (may start with '-')
+    # tr -d '\r': keepassxc-cli may emit CRLF on Windows; normalize so captures are clean
+    "$KPXC" show "${UNLOCK[@]}" -a password "$DB" -- "$1" 2>/dev/null | tr -d '\r'
     ;;
   set)
     # set = add (if new) or edit (if exists)
@@ -46,17 +48,17 @@ case "$cmd" in
     else
       value="$(cat)"
     fi
-    if "$KPXC" ls "${UNLOCK[@]}" "$DB" 2>/dev/null | grep -qxF "$name"; then
-      printf '%s\n' "$value" | "$KPXC" edit "${UNLOCK[@]}" -p "$DB" "$name" >/dev/null 2>&1 \
+    if "$KPXC" ls "${UNLOCK[@]}" "$DB" 2>/dev/null | tr -d '\r' | grep -qxF "$name"; then
+      printf '%s\n' "$value" | "$KPXC" edit "${UNLOCK[@]}" -p "$DB" -- "$name" >/dev/null 2>&1 \
         && echo "updated: $name" || { echo "edit failed: $name" >&2; exit 1; }
     else
-      printf '%s\n' "$value" | "$KPXC" add "${UNLOCK[@]}" -u "" -p "$DB" "$name" >/dev/null 2>&1 \
+      printf '%s\n' "$value" | "$KPXC" add "${UNLOCK[@]}" -u "" -p "$DB" -- "$name" >/dev/null 2>&1 \
         && echo "added: $name" || { echo "add failed: $name" >&2; exit 1; }
     fi
     ;;
   add)
     [ $# -ge 1 ] || { echo "usage: kp.sh add <name>" >&2; exit 2; }
-    printf '%s\n' "$(cat)" | "$KPXC" add "${UNLOCK[@]}" -u "" -p "$DB" "$1" >/dev/null 2>&1 \
+    printf '%s\n' "$(cat)" | "$KPXC" add "${UNLOCK[@]}" -u "" -p "$DB" -- "$1" >/dev/null 2>&1 \
       && echo "added: $1" || { echo "add failed (entry may already exist): $1" >&2; exit 1; }
     ;;
   list)
@@ -69,7 +71,7 @@ case "$cmd" in
     ;;
   rm)
     [ $# -eq 1 ] || { echo "usage: kp.sh rm <name>" >&2; exit 2; }
-    "$KPXC" rm "${UNLOCK[@]}" "$DB" "$1" >/dev/null 2>&1 && echo "removed: $1"
+    "$KPXC" rm "${UNLOCK[@]}" "$DB" -- "$1" >/dev/null 2>&1 && echo "removed: $1"
     ;;
   batch)
     # Lines: name=value  (CRLF safe: strips trailing \r). Skips blank lines.
@@ -81,7 +83,7 @@ case "$cmd" in
       name="${line%%=*}"
       value="${line#*=}"
       value="${value%$'\r'}"
-      if printf '%s\n' "$value" | "$KPXC" add "${UNLOCK[@]}" -u "" -p "$DB" "$name" >/dev/null 2>&1; then
+      if printf '%s\n' "$value" | "$KPXC" add "${UNLOCK[@]}" -u "" -p "$DB" -- "$name" >/dev/null 2>&1; then
         echo "OK: $name"; ok=$((ok+1))
       else
         echo "FAIL: $name"; fail=$((fail+1))
@@ -100,13 +102,13 @@ case "$cmd" in
     [ $# -eq 1 ] || { echo "usage: kp.sh get-or-input <name>" >&2; exit 2; }
     name="$1"
     # NOTE: `|| true` is required — set -e would abort silently when show fails on a missing entry
-    value=$("$KPXC" show "${UNLOCK[@]}" -a password "$DB" "$name" 2>/dev/null || true)
+    value=$("$KPXC" show "${UNLOCK[@]}" -a password "$DB" -- "$name" 2>/dev/null | tr -d '\r' || true)
     if [ -n "$value" ]; then
       printf '%s' "$value"
     else
       echo "[提示] 条目 '$name' 不存在，请在弹出的窗口中录入" >&2
       if python "$SCRIPT_DIR/kp-input.py" "$name"; then
-        value=$("$KPXC" show "${UNLOCK[@]}" -a password "$DB" "$name" 2>/dev/null || true)
+        value=$("$KPXC" show "${UNLOCK[@]}" -a password "$DB" -- "$name" 2>/dev/null | tr -d '\r' || true)
         if [ -n "$value" ]; then
           echo "[完成] '$name' 已保存并读取成功" >&2
           printf '%s' "$value"

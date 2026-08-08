@@ -43,20 +43,21 @@ def run_cli(p, *args, input_text=None):
 
 
 def entry_names(p):
-    r = run_cli(p, "ls", *UNLOCK, p["key"], p["db"])
+    r = run_cli(p, "ls", *UNLOCK, p["key"], p["db"], "--")
     return r.stdout.decode("utf-8", "replace").splitlines()
 
 
 def save_entry(p, name, value, notes=""):
-    """Add or update an entry. Returns (ok, detail)."""
+    """Add or update an entry. Returns (ok, detail).
+    `--` ends option parsing: entry names are untrusted data (may start with '-')."""
     value = value.rstrip("\r\n")
     names = entry_names(p)
     cmd = "edit" if name in names else "add"
     if cmd == "add":
-        r = run_cli(p, "add", *UNLOCK, p["key"], "-u", "", "-p", "--notes", notes, p["db"], name,
+        r = run_cli(p, "add", *UNLOCK, p["key"], "-u", "", "-p", "--notes", notes, p["db"], "--", name,
                     input_text=value)
     else:
-        r = run_cli(p, "edit", *UNLOCK, p["key"], "-p", "--notes", notes, p["db"], name,
+        r = run_cli(p, "edit", *UNLOCK, p["key"], "-p", "--notes", notes, p["db"], "--", name,
                     input_text=value)
     if r.returncode == 0:
         return True, ("已更新" if cmd == "edit" else "已新增") + f": {name}"
