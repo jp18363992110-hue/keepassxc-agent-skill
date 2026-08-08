@@ -1,0 +1,10 @@
+# Never commit vault credentials — these unlock or contain your secrets
+*.kdbx
+*.key
+*.keyx
+*.kdb
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.tmp
