@@ -8,3 +8,7 @@
 .DS_Store
 Thumbs.db
 *.tmp
+
+# Python bytecode cache
+__pycache__/
+*.pyc
